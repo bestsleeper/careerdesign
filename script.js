@@ -1,26 +1,53 @@
-//이시은제작
-document.addEventListener('DOMContentLoaded', function() {
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    menuItems.forEach(item => {
-        const toggle = item.querySelector('.menu-toggle');
-
-        toggle.addEventListener('click', function(event) {
-            event.preventDefault();
-            menuItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('active');
-                }
-            });
-            item.classList.toggle('active');
-        });
-    });
-
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.menu-item')) {
-            menuItems.forEach(item => {
-                item.classList.remove('active');
-            });
-        }
-    });
-});
+/* EnerLink: 전력 계산, 브라우저 기록, 소비 분석, 절감 시뮬레이션 */
+(function energyApp(){
+"use strict";
+const $=id=>document.getElementById(id), KEY="enerlink.careerdesign.records.v1", PLAN="enerlink.careerdesign.plans.v1";
+const fmt=(n,d=2)=>Number(n).toLocaleString("ko-KR",{maximumFractionDigits:d});
+const kwh=(w,h,q=1)=>w*h*q/1000;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const localDate=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")};
+const validDate=s=>typeof s==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s+"T00:00:00Z").toISOString().slice(0,10)===s;
+const number=(id,min,max,integer=false)=>{const el=$(id);if(!el||el.value.trim()==="")return null;const n=Number(el.value);return Number.isFinite(n)&&n>=min&&n<=max&&(!integer||Number.isInteger(n))?n:null};
+const read=key=>{try{const a=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(a)?a:[]}catch{return []}};
+const write=(key,a)=>{try{localStorage.setItem(key,JSON.stringify(a));return true}catch{return false}};
+const validRecord=r=>r&&validDate(r.date)&&typeof r.name==="string"&&r.name.length>0&&r.name.length<=60&&Number.isFinite(r.watts)&&r.watts>=0&&r.watts<=100000&&Number.isFinite(r.hours)&&r.hours>=0&&r.hours<=24&&Number.isInteger(r.qty)&&r.qty>=1&&r.qty<=10000;
+const records=()=>read(KEY).filter(validRecord).sort((a,b)=>b.date.localeCompare(a.date)||a.name.localeCompare(b.name,"ko"));
+const same=(a,b)=>a.date===b.date&&a.name===b.name;
+const energy=r=>kwh(r.watts,r.hours,r.qty);
+function status(id,msg,error=false){const el=$(id);if(el){el.textContent=msg;el.classList.toggle("error",error)}}
+function empty(t="아직 저장된 기록이 없습니다. 먼저 전력 사용량을 기록해 주세요."){return `<div class="empty">${esc(t)}</div>`}
+function table(headers,rows){return `<div class="tablewrap"><table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`}
+function cells(values){return "<tr>"+values.map(v=>`<td>${esc(v)}</td>`).join("")+"</tr>"}
+function recordTable(list,del=false){if(!list.length)return empty();return table(["날짜","기기","소비전력","시간","수량","사용량",...(del?["관리"]:[])],list.map((r,i)=>`<tr>${[r.date,r.name,fmt(r.watts)+" W",fmt(r.hours)+" h",r.qty,fmt(energy(r),3)+" kWh"].map(v=>`<td>${esc(v)}</td>`).join("")}${del?`<td><button type="button" class="mini delete-record" data-i="${i}">삭제</button></td>`:""}</tr>`))}
+function bindDeletes(root,list,refresh,msg){root.querySelectorAll(".delete-record").forEach(btn=>btn.addEventListener("click",()=>{const target=list[Number(btn.dataset.i)];if(!target)return;if(!confirm("이 기록을 삭제할까요?"))return;if(write(KEY,records().filter(r=>!same(r,target)))){refresh();status(msg,"기록을 삭제했습니다.")}else status(msg,"저장소에 접근할 수 없습니다.",true)}))}
+function initRecord(){
+const form=$("energy-form");if(!form)return;$("rec-date").value=localDate();
+function get(){const date=$("rec-date").value,name=$("device").value.trim(),watts=number("watts",0,100000),hours=number("hours",0,24),qty=number("qty",1,10000,true);return {date,name,watts,hours,qty}}
+function live(){const r=get();const ok=r.watts!==null&&r.hours!==null&&r.qty!==null;const e=ok?energy(r):null;const rate=number("rate",0,10000);$("live-kwh").innerHTML=ok?fmt(e,3)+" <small>kWh</small>":"— <small>kWh</small>";$("live-month").textContent=ok?"30일 사용 가정: "+fmt(e*30,3)+" kWh":"30일 사용 가정: —";$("live-cost").textContent=ok&&rate!==null?"단순 비용 추정: 일 "+fmt(e*rate,0)+"원 · 30일 "+fmt(e*rate*30,0)+"원":"참고 단가 입력 시 비용을 표시합니다."}
+function day(){const list=records().filter(r=>r.date===$("rec-date").value);$("day-total").textContent=fmt(list.reduce((s,r)=>s+energy(r),0),3)+" kWh";$("day-table").innerHTML=recordTable(list,true);bindDeletes($("day-table"),list,day,"record-msg")}
+$("preset").addEventListener("change",e=>{if(e.target.value){const [name,w]=e.target.value.split("|");$("device").value=name;$("watts").value=w;live()}});
+form.addEventListener("input",live);$("rec-date").addEventListener("change",day);form.addEventListener("submit",e=>{e.preventDefault();const r=get();if(!validRecord(r)){status("record-msg","날짜, 기기명, 소비전력, 사용시간, 수량을 확인하세요.",true);return}const list=records();const replaced=list.some(x=>same(x,r));if(!write(KEY,[...list.filter(x=>!same(x,r)),r])){status("record-msg","브라우저 저장이 불가능합니다. 사이트 저장 권한을 확인하세요.",true);return}day();status("record-msg",replaced?"같은 날짜의 기기 기록을 갱신했습니다.":"전력 사용 기록을 저장했습니다.")});live();day();
+}
+function sumScenario(items,days){return items.reduce((s,r)=>({before:s.before+kwh(r.watts,r.before,r.qty)*days,after:s.after+kwh(r.watts,r.after,r.qty)*days}),{before:0,after:0})}
+function initScenario(){
+const form=$("scenario-form");if(!form)return;let items=[];const list=records();const seen=new Set();const devices=list.filter(r=>{if(seen.has(r.name))return false;seen.add(r.name);return true});
+$("scenario-record").insertAdjacentHTML("beforeend",devices.map((r,i)=>`<option value="${i}">${esc(r.name)} · ${fmt(r.watts)}W</option>`).join(""));
+$("scenario-record").addEventListener("change",e=>{if(e.target.value==="")return;const r=devices[Number(e.target.value)];if(!r)return;$("s-device").value=r.name;$("s-watts").value=r.watts;$("s-qty").value=r.qty;$("s-before").value=r.hours;$("s-after").value=r.hours});
+function render(){const days=number("s-days",1,366,true);const rate=number("s-rate",0,10000);if(days===null){$("scenario-summary").innerHTML=empty("적용 일수를 1~366일로 입력하세요.");$("scenario-table").innerHTML=empty("유효한 적용 일수를 입력하세요.");return}const {before,after}=sumScenario(items,days);const saved=before-after, pct=before>0?100*saved/before:0;
+$("scenario-summary").innerHTML=`<div class="resultbig">${fmt(saved,3)} <small>kWh</small></div><p>${days}일 예상 절감량${before>0?" · "+fmt(pct,1)+"%":""}</p><div class="compare"><div class="compare-row"><span>현재 사용량</span><strong>${fmt(before,3)} kWh</strong></div><div class="track"><div class="fill" style="width:${before?100:0}%"></div></div><div class="compare-row"><span>개선 후 사용량</span><strong>${fmt(after,3)} kWh</strong></div><div class="track"><div class="fill" style="width:${before?Math.min(100,after/before*100):0}%"></div></div></div><p>${rate===null?"참고 단가 입력 시 예상 비용 절감액을 표시합니다.":"예상 비용 절감: "+fmt(saved*rate,0)+"원 (단가 × 절감량)"}</p>`;
+$("scenario-table").innerHTML=items.length?table(["기기","현재 시간","개선 시간","예상 절감량","관리"],items.map((r,i)=>`<tr><td>${esc(r.name)}</td><td>${fmt(r.before)} h</td><td>${fmt(r.after)} h</td><td>${fmt(kwh(r.watts,r.before-r.after,r.qty)*days,3)} kWh</td><td><button class="mini remove-scenario" type="button" data-i="${i}">삭제</button></td></tr>`)):empty("비교할 기기를 추가해 주세요.");document.querySelectorAll(".remove-scenario").forEach(b=>b.addEventListener("click",()=>{items.splice(Number(b.dataset.i),1);render()}))}
+form.addEventListener("submit",e=>{e.preventDefault();const name=$("s-device").value.trim(),watts=number("s-watts",0,100000),qty=number("s-qty",1,10000,true),before=number("s-before",0,24),after=number("s-after",0,24);if(!name||[watts,qty,before,after].some(v=>v===null)||after>before){status("scenario-msg","입력값을 확인하세요. 개선 후 시간은 현재 시간 이하여야 합니다.",true);return}items=[...items.filter(r=>r.name!==name),{name,watts,qty,before,after}];render();status("scenario-msg","비교 목록에 반영했습니다.")});["s-days","s-rate"].forEach(id=>$(id).addEventListener("input",render));$("save-scenario").addEventListener("click",()=>{const days=number("s-days",1,366,true);if(!items.length||days===null){status("save-msg","기기와 적용 일수를 먼저 입력하세요.",true);return}const totals=sumScenario(items,days);const p={date:localDate(),days,items, saved:totals.before-totals.after};if(write(PLAN,[p,...read(PLAN)].slice(0,100)))status("save-msg","절감 계획을 저장했습니다. 내 기록 관리에서 확인할 수 있습니다.");else status("save-msg","저장에 실패했습니다.",true)});render();
+}
+function group(list,key){const m=new Map();for(const r of list){const k=r[key];m.set(k,(m.get(k)||0)+energy(r))}return [...m]}
+function bars(entries){if(!entries.length)return empty();const max=Math.max(0,...entries.map(x=>x[1]));return `<div class="bars">${entries.map(([name,n])=>`<div class="barline"><span>${esc(name)}</span><div class="track"><div class="fill" style="width:${max?100*n/max:0}%"></div></div><span class="barval">${fmt(n,3)} kWh</span></div>`).join("")}</div>`}
+function trend(daily){if(!daily.length)return empty();const d=daily.slice(-30),max=Math.max(0.001,...d.map(x=>x[1])),w=640,h=220,x=i=>d.length===1?320:48+i*(w-72)/(d.length-1),y=n=>h-34-n/max*(h-60);const pts=d.map((v,i)=>`${x(i)},${y(v[1])}`).join(" ");return `<svg class="chartsvg" viewBox="0 0 ${w} ${h}" role="img" aria-label="최근 기록일별 전력 사용량 선그래프">${[0,.25,.5,.75,1].map(t=>`<line x1="48" x2="${w-24}" y1="${y(max*t)}" y2="${y(max*t)}" stroke="#dce7e1"/><text x="4" y="${y(max*t)+4}" font-size="11" fill="#536962">${esc(fmt(max*t,1))}</text>`).join("")}<polyline points="${pts}" fill="none" stroke="#187454" stroke-width="3" stroke-linejoin="round"/>${d.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v[1])}" r="4" fill="#187454"><title>${esc(v[0])}: ${fmt(v[1],3)} kWh</title></circle>`).join("")}${d.filter((v,i)=>i===0||i===d.length-1||(d.length>5&&i===Math.floor(d.length/2))).map(v=>`<text x="${x(d.indexOf(v))}" y="${h-12}" text-anchor="middle" font-size="11" fill="#536962">${esc(v[0].slice(5))}</text>`).join("")}</svg>`}
+function initAnalysis(){const target=$("analytics");if(!target)return;function render(){const from=$("from-date").value,to=$("to-date").value;if(from&&to&&from>to){status("filter-msg","시작 날짜는 종료 날짜 이전이어야 합니다.",true);target.innerHTML=empty("날짜 범위를 수정해 주세요.");return}status("filter-msg","");const list=records().filter(r=>(!from||r.date>=from)&&(!to||r.date<=to));if(!list.length){target.innerHTML=`<section class="card space">${empty()}<div class="actions" style="justify-content:center;margin-top:16px"><a class="btn primary" href="carbon_record.html">첫 기록 만들기</a></div></section>`;return}const daily=group(list,"date").sort((a,b)=>a[0].localeCompare(b[0])),dev=group(list,"name").sort((a,b)=>b[1]-a[1]);const total=list.reduce((s,r)=>s+energy(r),0),avg=total/daily.length,top=dev[0],peak=[...daily].sort((a,b)=>b[1]-a[1])[0];const recent=daily.slice(-7);const forecast=recent.reduce((s,x)=>s+x[1],0)/recent.length;const prev=daily.slice(-14,-7);const prevAvg=prev.length===7?prev.reduce((s,x)=>s+x[1],0)/7:null;const delta=prevAvg!==null&&prevAvg>0?(forecast-prevAvg)/prevAvg*100:null;
+target.innerHTML=`<div class="grid three kpis"><article class="card kpi"><span class="eyebrow">TOTAL</span><h3>기록된 총 사용량</h3><div class="stat">${fmt(total,3)} kWh</div><p>${list.length}개 기기 기록</p></article><article class="card kpi"><span class="eyebrow">DAILY AVERAGE</span><h3>기록일 평균</h3><div class="stat">${fmt(avg,3)} kWh</div><p>${daily.length}일 기준 · 미기록일 제외</p></article><article class="card kpi"><span class="eyebrow">30-DAY OUTLOOK</span><h3>30일 사용량 전망</h3><div class="stat">${recent.length>=3?fmt(forecast*30,2)+" kWh":"자료 부족"}</div><p>최근 기록일 최대 7일 평균 · 최소 3일 필요</p></article></div><div class="grid two"><article class="card"><h2>기기별 소비 비중</h2>${bars(dev.slice(0,12))}<p class="hint">${dev.length>12?"상위 12개 기기 표시. ":""}전체 사용량 기준.</p></article><article class="card"><h2>기록일별 사용량 추이</h2>${trend(daily)}<p class="hint">최근 최대 30개 기록일 · 기록 간격은 균등 표시</p></article></div><section class="card space"><h2>데이터 기반 소비 진단</h2><div class="insight"><strong>우선 점검할 기기</strong><p>${esc(top[0])}의 기록 사용량은 ${fmt(top[1],3)}kWh이며 전체의 ${fmt(total>0?top[1]/total*100:0,1)}%입니다. 소비전력·사용시간과 실제 사용 필요성을 우선 확인해 보세요.</p></div><div class="insight"><strong>가장 높은 기록일</strong><p>${esc(peak[0])}의 사용량은 ${fmt(peak[1],3)}kWh입니다. 날짜별 기록의 기기 범위가 같은지 확인한 뒤 사용 패턴을 비교하세요.</p></div><div class="insight"><strong>최근 변화와 전망</strong><p>${delta===null?"직전 7개 기록일과 비교할 자료가 충분하지 않거나 직전 평균이 0입니다.":`최근 7개 기록일 평균은 직전 7개 기록일 평균보다 ${fmt(Math.abs(delta),1)}% ${delta>=0?"높습니다":"낮습니다"}. 날짜와 기기 구성이 같지 않으면 실제 소비 변화로 해석할 수 없습니다.`} ${recent.length>=3?"현재 기록일 평균이 계속된다고 가정한 30일 전망은 "+fmt(forecast*30,2)+"kWh입니다.":"3일 이상 기록하면 30일 사용량 전망을 제공합니다."}</p></div><a class="btn primary" style="margin-top:18px" href="carbon_record2.html">절감 시나리오 설계하기 →</a></section><section class="card space"><h2>날짜별 합계</h2>${table(["기록 날짜","예상 사용량"],daily.slice().reverse().map(x=>cells([x[0],fmt(x[1],3)+" kWh"])))}</section>`}
+["from-date","to-date"].forEach(id=>$(id).addEventListener("change",render));$("filter-clear").addEventListener("click",()=>{$("from-date").value="";$("to-date").value="";render()});render();
+}
+function csvField(v){let s=String(v);if(/^[\s]*[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+function initManage(){const root=$("all-records");if(!root)return;function render(){const list=records();root.innerHTML=recordTable(list,true);bindDeletes(root,list,render,"manage-msg");const plans=read(PLAN).filter(p=>p&&validDate(p.date)&&Number.isFinite(p.saved)&&Number.isInteger(p.days)&&Array.isArray(p.items));$("saved-plans").innerHTML=plans.length?table(["저장일","기간","기기 수","예상 절감량"],plans.map(p=>cells([p.date,p.days+"일",p.items.length,fmt(p.saved,3)+" kWh"]))):empty("저장된 절감 계획이 없습니다.")}
+$("export-csv").addEventListener("click",()=>{const list=records();if(!list.length){status("manage-msg","내보낼 기록이 없습니다.",true);return}const rows=[["날짜","기기","소비전력_W","사용시간_h","수량","예상사용량_kWh"],...list.map(r=>[r.date,r.name,r.watts,r.hours,r.qty,energy(r)])];const blob=new Blob(["\ufeff"+rows.map(row=>row.map(csvField).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="enerlink-energy-"+localDate()+".csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status("manage-msg","CSV 파일 내보내기를 요청했습니다.")});$("clear-data").addEventListener("click",()=>{if(!confirm("전력 사용 기록과 절감 계획을 모두 삭제할까요? 복구할 수 없습니다."))return;const a=write(KEY,[]),b=write(PLAN,[]);render();status("manage-msg",a&&b?"에너링크 기록을 모두 삭제했습니다.":"일부 저장소 접근에 실패했습니다.",!(a&&b))});render()}
+const menu=$("nav-toggle");if(menu)menu.addEventListener("click",()=>{const open=$("navigation").classList.toggle("open");menu.setAttribute("aria-expanded",String(open))});
+initRecord();initScenario();initAnalysis();initManage();
+})();

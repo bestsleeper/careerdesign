@@ -1,59 +1,18 @@
-<header>
+# EnerLink | 에너링크
+Career DESIGN 수업의 가상기업 사회공헌 프로젝트. 기존 탄소중립지킴이의 다중 페이지 구조를 바탕으로 제작한 무료 에너지 관리 웹서비스.
 
-<!--
-  <<< Author notes: Course header >>>
-  Include a 1280×640 image, course title in sentence case, and a concise description in emphasis.
-  In your repository settings: enable template repository, add your 1280×640 social image, auto delete head branches.
-  Add your open source license, GitHub uses MIT license.
--->
+## 실행
+GitHub Pages의 main 브랜치 루트에 배포하거나 로컬 정적 서버로 실행. 별도 서버·API 키·라이브러리 불필요.
 
-# GitHub Pages
+## 기능
+- 전력 사용량 계산 및 날짜·기기별 기록 (동일 날짜·기기 재저장 시 갱신)
+- 기기별 소비 비중, 기록일별 추이, 최근 기록일 평균 기반 전망
+- 복수 기기 절감 시나리오 비교 및 저장
+- CSV 내보내기, 기록 삭제, 브라우저 LocalStorage 사용
+- 공공 에너지 정보 및 AI·IoT 기술 소개
 
-_Create a site or blog from your GitHub repositories with GitHub Pages._
+## 제한
+기록은 직접 입력한 추정치이며 실시간 계측, AI 모델 학습, 자동 제어, 실제 전기요금 청구 계산을 제공하지 않는다. 메인 화면의 그래프는 가상 예시다. 전망은 단순 평균 기반이고 기록이 없는 날짜는 제외한다. 참고 단가는 사용자가 입력한다. 저장소 데이터는 서버로 보내지 않는다.
 
-</header>
-
-<!--
-  <<< Author notes: Step 2 >>>
-  Start this step by acknowledging the previous step.
-  Define terms and link to docs.github.com.
-  Historic note: previous version checked for empty pull request, changed to the correct theme `minima`.
--->
-
-## Step 2: Configure your site
-
-_You turned on GitHub Pages! :tada:_
-
-We'll work in a branch, `my-pages`, that I created for you to get this site looking great. :sparkle:
-
-Jekyll uses a file titled `_config.yml` to store settings for your site, your theme, and reusable content like your site title and GitHub handle. You can check out the `_config.yml` file on the **Code** tab of your repository.
-
-We need to use a blog-ready theme. For this activity, we will use a theme named "minima".
-
-### :keyboard: Activity: Configure your site
-
-1. Browse to the `_config.yml` file in the `my-pages` branch.
-1. In the upper right corner, open the file editor.
-1. Add a `theme:` set to **minima** so it shows in the `_config.yml` file as below:
-   ```yml
-   theme: minima
-   ```
-1. (optional) You can modify the other configuration variables such as `title:`, `author:`, and `description:` to further customize your site.
-1. Commit your changes.
-1. (optional) Create a pull request to view all the changes you'll make throughout this course. Click the **Pull Requests** tab, click **New pull request**, set `base: main` and `compare:my-pages`.
-1. Wait about 20 seconds then refresh this page (the one you're following instructions from). [GitHub Actions](https://docs.github.com/en/actions) will automatically update to the next step.
-
-<footer>
-
-<!--
-  <<< Author notes: Footer >>>
-  Add a link to get support, GitHub status page, code of conduct, license link.
--->
-
----
-
-Get help: [Post in our discussion board](https://github.com/orgs/skills/discussions/categories/github-pages) &bull; [Review the GitHub status page](https://www.githubstatus.com/)
-
-&copy; 2023 GitHub &bull; [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md) &bull; [MIT License](https://gh.io/mit)
-
-</footer>
+## 검증 예시
+65W 노트북 5시간 1대 → 0.325 kWh/일. 50W 선풍기 4시간 2대 → 0.4 kWh/일. 50W 1대의 하루 사용시간을 4h에서 2h로 줄이고 30일 적용 → 3 kWh 예상 절감. 같은 날짜·기기명 저장 시 갱신, 다른 날짜 저장 시 별도 기록.
