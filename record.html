@@ -1,0 +1,78 @@
+<!DOCTYPE html> <!--이시은제작-->
+ <html lang="ko">
+ <head>
+   <meta charset="UTF-8">
+   <title>기록지</title>
+   <link rel="stylesheet" href="style.css">
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+   <style>
+       .button-container {
+         display: flex;
+         justify-content: center;
+         gap: 30px;
+         margin-top: 50px;
+         flex-wrap: wrap; 
+       }
+     
+       .carbon-button {
+         font-family: 'GmarketSans', sans-serif;
+         font-size: 18px;
+         padding: 20px 30px;
+         border: none;
+         border-radius: 10px;
+         background-color: #e6f2ec;
+         color: #1e4638;
+         cursor: pointer;
+         box-shadow: 2px 4px 6px rgba(0,0,0,0.1);
+         transition: transform 0.2s ease;
+       }
+     
+       .carbon-button:hover {
+         transform: scale(1.05);
+         backgroung-color:
+       }
+   </style>
+ </head>
+  
+ <body>
+   <header>
+       <h1><a href="index.html" style="color:  #31624E; text-decoration: none;">탄소중립지킴이</a></h1>
+        <p style="margin: 0; font-size: 25px; color: #555;">함께 지켜나가는 우리들의 지구</p>
+   </header>
+ 
+   <nav>
+     <ul>
+       <li><a href="#">소개</a>
+         <ul class="submenu">
+             <li><a href="purpose.html">설립 목적</a></li>
+             <li><a href="howtouse.html">이용 방법</a></li>
+             <li><a href="usage_status.html">이용 현황</a></li>
+           </ul>
+       </li>
+       <li><a href="#">정책</a>
+         <ul class="submenu">
+             <li><a href="domestic_policy.html">국내 정책</a></li>
+             <li><a href="international_policy.html">국외 정책</a></li>
+           </ul>
+       </li>
+       <li><a href="#">탄소기록 </a>
+         <ul class="submenu">
+             <li><a href="carbon_record.html">탄소 계산기</a></li>
+             <li><a href="report_analysis.html">분석</a></li>
+           </ul>
+       </li>
+     </ul>
+   </nav>
+
+  
+  <main>
+  <div class="button-container">
+    <button class="carbon-button" onclick="location.href='carbon_record.html'"> 배출한 탄소량 알아보기 → </button>
+    <button class="carbon-button" onclick="location.href='carbon_record2.html'"> 절약한 탄소량 알아보기 → </button>
+  </div>
+  </main>
+
+</body>
+</html>
+
