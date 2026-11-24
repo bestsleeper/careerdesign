@@ -1,4 +1,3 @@
-/* EnerLink: 전력 계산, 브라우저 기록, 소비 분석, 절감 시뮬레이션 */
 (function energyApp(){
 "use strict";
 const $=id=>document.getElementById(id), KEY="enerlink.careerdesign.records.v1", PLAN="enerlink.careerdesign.plans.v1";
